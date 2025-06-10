@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive UTF-8 Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .pattern-bit {
+        background-color: #0d9488; /* teal-600 */
+        color: white;
+        padding: 0.25rem 0.1rem;
+        border-radius: 0.25rem;
+        font-weight: bold;
+        font-family: monospace;
+      }
+      .data-bit {
+        background-color: #f59e0b; /* amber-500 */
+        color: white;
+        padding: 0.25rem 0.1rem;
+        border-radius: 0.25rem;
+        font-weight: bold;
+        font-family: monospace;
+      }
+      .bit-group {
+        margin: 0 0.25rem;
+      }
+      .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-in-out;
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-stone-50 text-stone-800">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
+      <header class="text-center mb-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-teal-800 mb-2">
+          Interactive UTF-8 Explorer
+        </h1>
+        <p class="text-lg text-stone-600">
+          A tool to visualize how Unicode characters are encoded into UTF-8
+          bytes.
+        </p>
+      </header>
+
+      <main>
+        <!-- Interactive Converter Section -->
+        <section
+          id="converter"
+          class="bg-white p-6 rounded-xl shadow-lg border border-stone-200 mb-8"
+        >
+          <h2 class="text-2xl font-bold mb-4 text-teal-700">
+            Live UTF-8 Converter
+          </h2>
+          <p class="mb-4 text-stone-600">
+            Enter a single character into the box below and click "Convert" to
+            see a step-by-step breakdown of its UTF-8 encoding. This hands-on
+            tool helps demystify the patterns and rules of UTF-8.
+          </p>
+          <div class="flex flex-col sm:flex-row items-center gap-4">
+            <input
+              type="text"
+              id="charInput"
+              maxlength="1"
+              class="flex-grow w-full sm:w-auto text-2xl p-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              placeholder="enter a character"
+            />
+            <button
+              onclick="convertCharacter()"
+              class="w-full sm:w-auto bg-teal-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-700 transition-colors shadow-md"
+            >
+              Convert
+            </button>
+          </div>
+        </section>
+
+        <!-- Results Section -->
+        <section
+          id="results"
+          class="hidden bg-white p-6 rounded-xl shadow-lg border border-stone-200 mb-8"
+        >
+          <h2 class="text-2xl font-bold mb-4 text-teal-700">
+            Encoding Breakdown
+          </h2>
+          <div id="output" class="space-y-4"></div>
+        </section>
+
+        <!-- Encoding Rules Section -->
+        <section
+          id="rules"
+          class="bg-white p-6 rounded-xl shadow-lg border border-stone-200 mb-8"
+        >
+          <h2 class="text-2xl font-bold mb-4 text-teal-700">
+            UTF-8 Encoding Rules Reference
+          </h2>
+          <p class="mb-4 text-stone-600">
+            The number of bytes used for a character depends on its Unicode code
+            point value. The first byte's pattern indicates the total number of
+            bytes in the sequence. This table provides a quick reference for the
+            rules our converter uses.
+          </p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead class="bg-stone-100">
+                <tr>
+                  <th
+                    class="p-3 font-bold text-stone-700 border-b-2 border-stone-200"
+                  >
+                    Code Point Range
+                  </th>
+                  <th
+                    class="p-3 font-bold text-stone-700 border-b-2 border-stone-200"
+                  >
+                    Bytes
+                  </th>
+                  <th
+                    class="p-3 font-bold text-stone-700 border-b-2 border-stone-200"
+                  >
+                    UTF-8 Binary Pattern
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-stone-200">
+                <tr>
+                  <td class="p-3 font-mono">U+0000 - U+007F</td>
+                  <td class="p-3">1</td>
+                  <td class="p-3 font-mono">
+                    <span class="pattern-bit">0</span
+                    ><span class="data-bit">xxxxxxx</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-mono">U+0080 - U+07FF</td>
+                  <td class="p-3">2</td>
+                  <td class="p-3 font-mono">
+                    <span class="bit-group"
+                      ><span class="pattern-bit">110</span
+                      ><span class="data-bit">xxxxx</span></span
+                    >
+                    <span class="bit-group"
+                      ><span class="pattern-bit">10</span
+                      ><span class="data-bit">xxxxxx</span></span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-mono">U+0800 - U+FFFF</td>
+                  <td class="p-3">3</td>
+                  <td class="p-3 font-mono">
+                    <span class="bit-group"
+                      ><span class="pattern-bit">1110</span
+                      ><span class="data-bit">xxxx</span></span
+                    >
+                    <span class="bit-group"
+                      ><span class="pattern-bit">10</span
+                      ><span class="data-bit">xxxxxx</span></span
+                    >
+                    <span class="bit-group"
+                      ><span class="pattern-bit">10</span
+                      ><span class="data-bit">xxxxxx</span></span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-mono">U+10000 - U+10FFFF</td>
+                  <td class="p-3">4</td>
+                  <td class="p-3 font-mono">
+                    <span class="bit-group"
+                      ><span class="pattern-bit">11110</span
+                      ><span class="data-bit">xxx</span></span
+                    >
+                    <span class="bit-group"
+                      ><span class="pattern-bit">10</span
+                      ><span class="data-bit">xxxxxx</span></span
+                    >
+                    <span class="bit-group"
+                      ><span class="pattern-bit">10</span
+                      ><span class="data-bit">xxxxxx</span></span
+                    >
+                    <span class="bit-group"
+                      ><span class="pattern-bit">10</span
+                      ><span class="data-bit">xxxxxx</span></span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Context & Challenges Section -->
+        <section id="context" class="space-y-4">
+          <div class="bg-white rounded-xl shadow-lg border border-stone-200">
+            <button
+              class="accordion-toggle w-full p-4 text-left text-lg font-bold text-teal-700 flex justify-between items-center hover:bg-stone-50 rounded-t-xl"
+            >
+              <span>The Encoding & Decoding Process</span>
+              <span class="transform transition-transform duration-300">▼</span>
+            </button>
+            <div class="accordion-content">
+              <div
+                class="p-4 border-t border-stone-200 text-stone-600 space-y-4"
+              >
+                <p>
+                  <strong>Encoding (Character to Bytes):</strong> The process
+                  starts by taking a character's Unicode code point. Based on
+                  its value, the correct 1, 2, 3, or 4-byte rule is chosen. The
+                  bits of the code point are then systematically placed into the
+                  'x' placeholders of the corresponding UTF-8 byte pattern.
+                  These bytes are then concatenated to form the final sequence
+                  for storage or transmission.
+                </p>
+                <p>
+                  <strong>Decoding (Bytes to Character):</strong> Decoding
+                  reverses this. A program reads the first byte of a sequence to
+                  determine the character's length from its leading bits (e.g.,
+                  '0' means 1 byte, '110' means 2 bytes, etc.). It then reads
+                  the required number of continuation bytes (which must start
+                  with '10') and reassembles the data bits from all bytes to
+                  reconstruct the original Unicode code point, which is then
+                  mapped back to a character.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-lg border border-stone-200">
+            <button
+              class="accordion-toggle w-full p-4 text-left text-lg font-bold text-teal-700 flex justify-between items-center hover:bg-stone-50 rounded-t-xl"
+            >
+              <span>Common Challenges</span>
+              <span class="transform transition-transform duration-300">▼</span>
+            </button>
+            <div class="accordion-content">
+              <div
+                class="p-4 border-t border-stone-200 text-stone-600 space-y-4"
+              >
+                <p>
+                  <strong>Malformed Sequences:</strong> A robust decoder must
+                  handle errors. These can include "overlong encodings" (using
+                  more bytes than necessary, a security risk), invalid byte
+                  values that don't fit the patterns, or sequences that are
+                  truncated unexpectedly.
+                </p>
+                <p>
+                  <strong>Byte Order Mark (BOM):</strong> Some text files start
+                  with a special byte sequence (EF BB BF) to explicitly declare
+                  the content is UTF-8. While UTF-8 is byte-order independent,
+                  decoders should be prepared to recognize and ignore this BOM,
+                  as it's not part of the actual text. If not handled, it can
+                  appear as garbage characters like "ï»¿" at the beginning of
+                  the content.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="utf-8_explorer.js"></script>
+  </body>
+</html>
